@@ -1,0 +1,132 @@
+{
+  "name": "assembly-line-stock",
+  "displayName": "Assembly Line Stock",
+  "description": "在 VSCode 盯盘 A 股 / ETF / 基金 / 港美股：状态栏 + 侧边栏，持仓盈亏、到价提醒、历史走势",
+  "version": "0.0.12",
+  "publisher": "local-dev",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "stockWatcher.refresh",
+        "title": "Assembly Line Stock: 立即刷新行情"
+      },
+      {
+        "command": "stockWatcher.toggle",
+        "title": "Assembly Line Stock: 开启/暂停盯盘"
+      },
+      {
+        "command": "stockWatcher.add",
+        "title": "Assembly Line Stock: 添加自选（搜索）"
+      },
+      {
+        "command": "stockWatcher.remove",
+        "title": "Assembly Line Stock: 删除自选"
+      },
+      {
+        "command": "stockWatcher.history",
+        "title": "Assembly Line Stock: 查看历史价格"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "stockWatcher",
+          "title": "Assembly Line Stock",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "stockWatcher": [
+        {
+          "id": "stockWatcherSidebar",
+          "name": "自选",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Assembly Line Stock",
+      "properties": {
+        "stockWatcher.symbols": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "object"
+            ]
+          },
+          "default": [
+            "sh600519:茅台",
+            {
+              "code": "sz159941",
+              "alias": "纳指广发",
+              "cost": 1.5,
+              "shares": 1000
+            },
+            "sh000001:上证指数",
+            "161725:白酒基金"
+          ],
+          "description": "自选列表。简单写法：字符串「代码:别名」（前缀 sh/sz/bj/hk 走实时行情；6 位纯数字走场外基金净值）。进阶写法：对象 {code, alias, cost 成本价, shares 持仓数, alertAbove, alertBelow, alertPct 涨跌幅%, lof:true 让 LOF 基金同时显示场内实时价} 可显示持仓盈亏、到价提醒、LOF 双价。也可用命令「Assembly Line Stock: 添加自选」搜索添加，或在活动栏「Assembly Line Stock」侧边栏添加 / 排序 / 设目标价。"
+        },
+        "stockWatcher.refreshInterval": {
+          "type": "number",
+          "default": 60,
+          "minimum": 5,
+          "description": "自动刷新间隔（秒），默认 60（1 分钟）。免费接口请勿过低，最低 5 秒。"
+        },
+        "stockWatcher.onlyWhenMarketOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "仅在 A 股交易时段（工作日 9:30-11:30 / 13:00-15:00，按北京时间判断）自动刷新；非交易时段保留收盘数据，仍可点击状态栏或用命令手动刷新。关闭则全天定时刷新。"
+        },
+        "stockWatcher.hideStatusBarWhenClosed": {
+          "type": "boolean",
+          "default": true,
+          "description": "休市时段隐藏状态栏的行情项（按各标的所属市场分别判断），活动栏「Assembly Line Stock」侧边栏仍可查看。关闭则休市也常驻状态栏。"
+        },
+        "stockWatcher.sharedCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "多窗口共享行情缓存：开多个 VSCode 窗口时，同一标的在一个刷新周期内只由一个窗口真正请求，其余窗口复用缓存，避免重复请求（出网频率≈单窗口）。关闭则每个窗口独立请求。"
+        },
+        "stockWatcher.showTotalProfit": {
+          "type": "boolean",
+          "default": true,
+          "description": "在状态栏显示所有持仓（配了 cost 与 shares 的标的）的总浮动盈亏汇总项。"
+        },
+        "stockWatcher.riseColor": {
+          "type": "string",
+          "default": "#f5222d",
+          "description": "上涨颜色（A 股习惯红涨）。"
+        },
+        "stockWatcher.fallColor": {
+          "type": "string",
+          "default": "#52c41a",
+          "description": "下跌颜色（A 股习惯绿跌）。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node test/run.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}
