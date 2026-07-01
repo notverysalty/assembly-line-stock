@@ -2,7 +2,7 @@
   "name": "assembly-line-stock",
   "displayName": "Assembly Line Stock",
   "description": "在 VSCode 盯盘 A 股 / ETF / 基金 / 港美股：状态栏 + 侧边栏，持仓盈亏、到价提醒、历史走势",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.85.0"
@@ -107,8 +107,8 @@
         },
         "stockWatcher.riseColor": {
           "type": "string",
-          "default": "#f5222d",
-          "description": "上涨颜色（A 股习惯红涨）。"
+          "default": "#e06c75",
+          "description": "上涨颜色（A 股习惯红涨）。默认用低饱和红，对散光 / 深色背景更友好。"
         },
         "stockWatcher.fallColor": {
           "type": "string",

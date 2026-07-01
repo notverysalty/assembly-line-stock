@@ -127,7 +127,7 @@ function getConfig(): Config {
     hideStatusBarWhenClosed: cfg.get<boolean>('hideStatusBarWhenClosed', true),
     sharedCache: cfg.get<boolean>('sharedCache', true),
     showTotalProfit: cfg.get<boolean>('showTotalProfit', true),
-    riseColor: cfg.get<string>('riseColor', '#f5222d'),
+    riseColor: cfg.get<string>('riseColor', '#e06c75'),
     fallColor: cfg.get<string>('fallColor', '#52c41a'),
   };
 }
