@@ -8,6 +8,7 @@ import { StockSidebarProvider, SidebarRow } from './sidebar';
 
 let items: vscode.StatusBarItem[] = [];
 let totalItem: vscode.StatusBarItem | undefined;
+let overflowItem: vscode.StatusBarItem | undefined; // 自选超出上限时的「+N」入口
 let timer: ReturnType<typeof setInterval> | undefined;
 let running = true;
 let isRefreshing = false; // 防重入锁
@@ -55,6 +56,7 @@ interface Config {
   interval: number;
   onlyWhenMarketOpen: boolean;
   hideStatusBarWhenClosed: boolean;
+  maxStatusBarItems: number;
   sharedCache: boolean;
   showTotalProfit: boolean;
   riseColor: string;
@@ -125,6 +127,7 @@ function getConfig(): Config {
     interval: cfg.get<number>('refreshInterval', 60),
     onlyWhenMarketOpen: cfg.get<boolean>('onlyWhenMarketOpen', true),
     hideStatusBarWhenClosed: cfg.get<boolean>('hideStatusBarWhenClosed', true),
+    maxStatusBarItems: Math.max(0, cfg.get<number>('maxStatusBarItems', 5)),
     sharedCache: cfg.get<boolean>('sharedCache', true),
     showTotalProfit: cfg.get<boolean>('showTotalProfit', true),
     riseColor: cfg.get<string>('riseColor', '#e06c75'),
@@ -146,6 +149,8 @@ function disposeItems() {
   items = [];
   totalItem?.dispose();
   totalItem = undefined;
+  overflowItem?.dispose();
+  overflowItem = undefined;
 }
 
 function rebuild() {
@@ -156,12 +161,26 @@ function rebuild() {
     totalItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
     totalItem.command = 'stockWatcher.refresh';
   }
-  cfg.symbols.forEach((s, idx) => {
+  // 状态栏只放前 N 个（拖拽排序决定谁上榜），全部自选在侧边栏
+  cfg.symbols.slice(0, cfg.maxStatusBarItems).forEach((s, idx) => {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100 - idx);
     item.command = { title: 'history', command: 'stockWatcher.history', arguments: [s.code] };
     // 显隐由 updateUI 按市场是否开盘控制
     items.push(item);
   });
+
+  // 超出上限：显示「+N」入口，点击打开侧边栏
+  const hidden = cfg.symbols.length - cfg.maxStatusBarItems;
+  if (hidden > 0) {
+    overflowItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100 - cfg.maxStatusBarItems
+    );
+    overflowItem.text = `+${hidden}`;
+    overflowItem.tooltip = `还有 ${hidden} 只自选未上状态栏（点击打开侧边栏查看全部；侧边栏拖拽排序可决定谁上状态栏）`;
+    overflowItem.command = 'workbench.view.extension.stockWatcher';
+    overflowItem.show();
+  }
 
   startTimer();
   void refresh(true, false);

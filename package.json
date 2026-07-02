@@ -2,7 +2,7 @@
   "name": "assembly-line-stock",
   "displayName": "Assembly Line Stock",
   "description": "在 VSCode 盯盘 A 股 / ETF / 基金 / 港美股：状态栏 + 侧边栏，持仓盈亏、到价提醒、历史走势",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.85.0"
@@ -94,6 +94,12 @@
           "type": "boolean",
           "default": true,
           "description": "休市时段隐藏状态栏的行情项（按各标的所属市场分别判断），活动栏「Assembly Line Stock」侧边栏仍可查看。关闭则休市也常驻状态栏。"
+        },
+        "stockWatcher.maxStatusBarItems": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "description": "状态栏最多显示的自选数量（按自选列表顺序取前 N 个，侧边栏拖拽排序可决定谁上状态栏）。超出的显示为「+N」入口，点击打开侧边栏查看全部。设 0 则状态栏不显示行情项。"
         },
         "stockWatcher.sharedCache": {
           "type": "boolean",

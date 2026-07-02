@@ -103,6 +103,7 @@ npm install        # 安装开发依赖
   - 按**北京时间**判断（A/港股），不受电脑时区影响
 - 非交易时段保留收盘数据，**手动刷新无视时段**。全天刷新可设 `onlyWhenMarketOpen: false`。
 - **休市隐藏状态栏**：默认休市时段状态栏行情项自动隐藏（按各标的所属市场判断），活动栏侧边栏仍可查看；设 `hideStatusBarWhenClosed: false` 可让其常驻。
+- **状态栏数量上限**：自选很多时状态栏只显示**前 5 个**（`maxStatusBarItems` 可调），超出部分显示为「+N」入口，点击打开侧边栏看全部——在侧边栏**拖拽排序**即可决定谁上状态栏。
 
 ## 配置项
 
@@ -112,6 +113,7 @@ npm install        # 安装开发依赖
 | `stockWatcher.refreshInterval` | 自动刷新间隔（秒，最低 5）| 60 |
 | `stockWatcher.onlyWhenMarketOpen` | 仅交易时段自动刷新 | true |
 | `stockWatcher.hideStatusBarWhenClosed` | 休市时隐藏状态栏行情项（侧边栏仍可看）| true |
+| `stockWatcher.maxStatusBarItems` | 状态栏最多显示的自选数（超出显示「+N」，点击开侧边栏）| 5 |
 | `stockWatcher.sharedCache` | 多窗口共享缓存去重 | true |
 | `stockWatcher.showTotalProfit` | 状态栏显示总盈亏 | true |
 | `stockWatcher.riseColor` / `fallColor` | 涨 / 跌颜色 | 红 / 绿 |
