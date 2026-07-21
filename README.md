@@ -128,7 +128,8 @@ npm install        # 安装开发依赖
 |---|---|
 | 实时行情（主）| 腾讯 `qt.gtimg.cn`（GBK，latin1 保字节）|
 | 实时行情（备）| 新浪 `hq.sinajs.cn`（需 Referer，自算涨跌幅）|
-| 场外基金净值 | 天天基金 `fundgz.1234567.com.cn`（UTF-8 JSONP）|
+| 场外基金（主）| 新浪 `hq.sinajs.cn` `fu_`盘中估值 + `f_`每日净值（需 Referer，批量一次拉取；原天天基金 fundgz 已下线）|
+| 场外基金（备）| 天天基金移动端 API `fundmobapi.eastmoney.com`（官方已停供盘中估值，多为每日净值）|
 | 搜索 | 东方财富 `searchadapter.eastmoney.com` |
 | 历史 K 线（A 股）| 新浪 `getKLineData` |
 | 历史净值（基金）| 天天基金 `f10/lsjz`（需 Referer）|

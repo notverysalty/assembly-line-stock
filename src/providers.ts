@@ -112,40 +112,119 @@ async function fetchSina(codes: string[]): Promise<Record<string, Tick>> {
   return out;
 }
 
-/** 场外基金：天天基金估值（UTF-8 JSONP），名称不乱码 */
-export async function fetchFund(code: string): Promise<Tick | undefined> {
-  try {
-    const raw = (await httpGet(`https://fundgz.1234567.com.cn/js/${code}.js`, 'utf8')).trim();
-    const json = raw.replace(/^jsonpgz\(/, '').replace(/\);?$/, '');
-    if (!json.startsWith('{')) {
-      return undefined;
+/**
+ * 解析新浪场外基金行情（原天天基金 fundgz 接口 2026-07 下线后的主源）。
+ * fu_<code> 盘中估值：名称,时间,估算净值,昨日单位净值,累计净值,?,估算涨跌幅%,日期,...
+ * f_<code>  每日净值：名称,单位净值,累计净值,前一日净值,净值日期,规模（货币基金 f[1] 为万份收益、f[3] 空）
+ * 估值优先，无估值的品种（如货币基金 fu_ 返回空串）降级用每日净值。
+ */
+export function parseSinaFunds(raw: string, codes: string[]): Record<string, Tick> {
+  const lines: Record<string, string[]> = {};
+  for (const line of raw.split(';')) {
+    const m = line.match(/hq_str_(fu?_\d{6})="([^"]*)"/i);
+    if (m && m[2]) {
+      lines[m[1].toLowerCase()] = m[2].split(',');
     }
-    const d = JSON.parse(json) as {
-      name: string;
-      dwjz: string;
-      gsz: string;
-      gszzl: string;
-      gztime: string;
-      jzrq: string;
-    };
-    const price = num(d.gsz);
-    const prevClose = num(d.dwjz);
-    return {
-      name: d.name,
-      priceStr: d.gsz,
+  }
+  const out: Record<string, Tick> = {};
+  for (const code of codes) {
+    const fu = lines[`fu_${code}`];
+    const f = lines[`f_${code}`];
+    if (fu && fu.length >= 8) {
+      const price = num(fu[2]);
+      const prevClose = num(fu[3]);
+      out[code] = {
+        name: fu[0] || undefined,
+        priceStr: fu[2],
+        price,
+        prevClose,
+        open: 0,
+        high: 0,
+        low: 0,
+        change: +(price - prevClose).toFixed(4),
+        changePct: num(fu[6]),
+        time: `${fu[7]} ${fu[1].slice(0, 5)}`,
+        isFund: true,
+      };
+    } else if (f && f.length >= 5) {
+      const price = num(f[1]);
+      const prevClose = num(f[3]);
+      out[code] = {
+        name: f[0] || undefined,
+        priceStr: f[1],
+        price,
+        prevClose,
+        open: 0,
+        high: 0,
+        low: 0,
+        change: prevClose ? +(price - prevClose).toFixed(4) : 0,
+        changePct: prevClose ? +(((price - prevClose) / prevClose) * 100).toFixed(2) : 0,
+        time: f[4] || '',
+        isFund: true,
+      };
+    }
+  }
+  return out;
+}
+
+/** 备源：天天基金移动端 API。官方已停供盘中估值（GSZ 常为 null），多数只有每日净值口径。 */
+async function fetchFundsMob(codes: string[]): Promise<Record<string, Tick>> {
+  const url =
+    `https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo?Fcodes=${codes.join(',')}` +
+    `&pageIndex=1&pageSize=${codes.length}&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=1`;
+  const raw = await httpGet(url, 'utf8');
+  const json = JSON.parse(raw) as { Datas?: Record<string, unknown>[] };
+  const out: Record<string, Tick> = {};
+  for (const d of json.Datas ?? []) {
+    const code = String(d.FCODE ?? '');
+    if (!code) {
+      continue;
+    }
+    const hasGsz = d.GSZ != null && d.GSZ !== '';
+    const priceStr = String(hasGsz ? d.GSZ : d.NAV ?? '');
+    const price = num(priceStr);
+    const pct = num(String(hasGsz ? d.GSZZL : d.NAVCHGRT));
+    const denom = 1 + pct / 100;
+    const prevClose = denom ? +(price / denom).toFixed(4) : 0;
+    out[code] = {
+      name: d.SHORTNAME ? String(d.SHORTNAME) : undefined,
+      priceStr,
       price,
       prevClose,
       open: 0,
       high: 0,
       low: 0,
       change: +(price - prevClose).toFixed(4),
-      changePct: num(d.gszzl),
-      time: d.gztime,
+      changePct: pct,
+      time: String((hasGsz ? d.GZTIME : d.PDATE) ?? ''),
       isFund: true,
     };
+  }
+  return out;
+}
+
+/** 场外基金主入口：新浪（估值+净值）为主、一次批量；失败切天天基金移动端 API */
+export async function fetchFunds(codes: string[]): Promise<Record<string, Tick>> {
+  if (!codes.length) {
+    return {};
+  }
+  try {
+    const list = [...codes.map((c) => `fu_${c}`), ...codes.map((c) => `f_${c}`)].join(',');
+    const raw = await httpGet(`https://hq.sinajs.cn/list=${list}`, 'gbk', {
+      Referer: 'https://finance.sina.com.cn',
+    });
+    const r = parseSinaFunds(raw, codes);
+    if (Object.keys(r).length > 0) {
+      return r;
+    }
   } catch (e) {
-    console.error('[stock-watcher] fund failed:', code, e);
-    return undefined;
+    console.error('[stock-watcher] sina fund failed, fallback to mob api:', e);
+  }
+  try {
+    return await fetchFundsMob(codes);
+  } catch (e) {
+    console.error('[stock-watcher] fund fallback failed:', e);
+    return {};
   }
 }
 

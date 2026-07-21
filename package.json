@@ -2,7 +2,7 @@
   "name": "assembly-line-stock",
   "displayName": "Assembly Line Stock",
   "description": "在 VSCode 盯盘 A 股 / ETF / 基金 / 港美股：状态栏 + 侧边栏，持仓盈亏、到价提醒、历史走势",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.85.0"

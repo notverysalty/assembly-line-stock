@@ -1,7 +1,7 @@
 // 纯逻辑单元测试（不依赖 vscode）。运行：npm test
 const assert = require('assert');
 const { detectMarket, inferLofCode } = require('../out/types.js');
-const { quoteIdToCode } = require('../out/providers.js');
+const { quoteIdToCode, parseSinaFunds } = require('../out/providers.js');
 const { isTradingTime, isUsDST } = require('../out/market.js');
 
 let groups = 0;
@@ -54,6 +54,27 @@ t('isUsDST 美东夏令时区间', () => {
 t('inferLofCode LOF 场内代码推断', () => {
   assert.strictEqual(inferLofCode('161725'), 'sz161725'); // 深市 LOF（1 字头）
   assert.strictEqual(inferLofCode('501018'), 'sh501018'); // 沪市 LOF（5 字头）
+});
+
+t('parseSinaFunds 基金估值/净值解析（真实接口样本）', () => {
+  const raw =
+    'var hq_str_fu_161725="招商中证白酒指数A,14:50:00,0.5486,0.5582,2.2743,0,-1.7198,2026-07-21,0.5479,-1.8452";\n' +
+    'var hq_str_fu_000198="";\n' + // 货币基金无盘中估值
+    'var hq_str_f_161725="招商中证白酒指数A,0.5582,2.2743,0.532,2026-07-20,387.846";\n' +
+    'var hq_str_f_000198="天弘余额宝货币,0.2294,0.844,,2026-07-20,6799.46";';
+  const r = parseSinaFunds(raw, ['161725', '000198', '999999']);
+  // 有盘中估值：走 fu_ 估值口径
+  assert.strictEqual(r['161725'].price, 0.5486);
+  assert.strictEqual(r['161725'].prevClose, 0.5582);
+  assert.strictEqual(r['161725'].changePct, -1.7198);
+  assert.strictEqual(r['161725'].name, '招商中证白酒指数A');
+  assert.strictEqual(r['161725'].time, '2026-07-21 14:50');
+  assert.strictEqual(r['161725'].isFund, true);
+  // fu_ 为空串：降级 f_ 每日净值口径；货币基金前值为空 -> 涨跌为 0
+  assert.strictEqual(r['000198'].price, 0.2294);
+  assert.strictEqual(r['000198'].changePct, 0);
+  // 接口没返回的代码不产出条目
+  assert.strictEqual(r['999999'], undefined);
 });
 
 console.log(`\n${groups} 组测试全部通过 ✅`);

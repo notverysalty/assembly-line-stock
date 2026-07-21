@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SymbolItem, Tick, detectMarket, inferLofCode } from './types';
 import { readCache, writeCache, Cache } from './cache';
 import { isMarketOpen, loadHolidays } from './market';
-import { fetchQuotes, fetchFund, searchStock, fetchHistory, fetchFundHistory } from './providers';
+import { fetchQuotes, fetchFunds, searchStock, fetchHistory, fetchFundHistory } from './providers';
 import { showHistoryWebview } from './history';
 import { StockSidebarProvider, SidebarRow } from './sidebar';
 
@@ -287,7 +287,7 @@ async function refresh(ignoreMarketGate = false, ignoreCache = false) {
   }
 }
 
-/** 按代码分流：6 位纯数字走天天基金净值，其余走腾讯/新浪行情；全部并发 */
+/** 按代码分流：6 位纯数字走场外基金（新浪批量），其余走腾讯/新浪行情；两路并发 */
 async function fetchCodes(codes: string[]): Promise<Record<string, Tick>> {
   const out: Record<string, Tick> = {};
   const funds = codes.filter((c) => /^\d{6}$/.test(c));
@@ -296,14 +296,9 @@ async function fetchCodes(codes: string[]): Promise<Record<string, Tick>> {
     (async () => {
       Object.assign(out, await fetchQuotes(others));
     })(),
-    ...funds
-      .map((c) => async () => {
-        const t = await fetchFund(c);
-        if (t) {
-          out[c] = t;
-        }
-      })
-      .map((fn) => fn()),
+    (async () => {
+      Object.assign(out, await fetchFunds(funds));
+    })(),
   ]);
   return out;
 }
